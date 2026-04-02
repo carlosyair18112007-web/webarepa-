@@ -1,0 +1,474 @@
+/*
+  ╔═══════════════════════════════════════════════════════╗
+  ║  style.css — Estilos visuales del perfil              ║
+  ║  Ahora con video de fondo en lugar de canvas sólido   ║
+  ╚═══════════════════════════════════════════════════════╝
+*/
+
+
+/* ══════════════════════════════════════════════════════
+   RESET GLOBAL
+   ══════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   VARIABLES CSS
+   Cambia aquí los colores y afecta a toda la página
+   ══════════════════════════════════════════════════════ */
+:root {
+  --text:      #e8e0d4;
+  --muted:     #7a7068;
+  --accent:    #c9a96e;               /* dorado */
+  --accent2:   #8fa3bf;               /* azul grisáceo */
+  --border:    rgba(255,255,255,0.07);
+  --font-jp:   'Noto Serif JP', serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════ */
+html, body {
+  height: 100%;
+  background: #080808;        /* negro base por si el video no carga */
+  color: var(--text);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+a { cursor: crosshair; }
+
+
+/* ══════════════════════════════════════════════════════
+   VIDEO DE FONDO
+   · position fixed → siempre cubre toda la pantalla
+   · object-fit: cover → llena sin deformar, recorta si hace falta
+   · filter → oscurece y desatura el video para que la card
+     se lea bien encima
+   · z-index: 0 → debajo de todo el contenido
+   ══════════════════════════════════════════════════════ */
+#bg-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(0.2) brightness(0.5) contrast(1.15);
+  /* ↑ Ajusta brightness(0.X) para más oscuro/claro:
+       0.2 = muy oscuro | 0.4 = más visible el video */
+  z-index: 0;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   CANVAS DE PARTÍCULAS (encima del video)
+   · background transparente → deja ver el video debajo
+   · z-index: 1 → encima del video, debajo del contenido
+   ══════════════════════════════════════════════════════ */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none; /* los clics pasan a través del canvas */
+}
+
+
+/* ══════════════════════════════════════════════════════
+   EFECTO GRAIN (grano de película)
+   Textura de ruido fractal muy sutil encima del video
+   ══════════════════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 998;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   EFECTO SCANLINES (rayas de monitor CRT)
+   ══════════════════════════════════════════════════════ */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   TEXTO JAPONÉS DECORATIVO (parallax con el mouse)
+   Fijos en pantalla, casi invisibles.
+   El JS los mueve según la posición del cursor.
+   ══════════════════════════════════════════════════════ */
+.deco-jp {
+  position: fixed;
+  font-family: var(--font-jp);
+  color: rgba(255,255,255,0.045); /* ligeramente más visible sobre el video */
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+  transition: transform 0.3s ease-out;
+  z-index: 2;
+}
+
+.deco-jp.top    { top: 6vh;  left: 4vw;  font-size: clamp(3rem,8vw,7rem); }
+.deco-jp.right  { top: 28vh; right: 3vw; font-size: clamp(2rem,5vw,4.5rem); writing-mode: vertical-rl; }
+.deco-jp.bottom { bottom: 8vh; right: 8vw; font-size: clamp(1.5rem,4vw,3rem); }
+
+
+/* ══════════════════════════════════════════════════════
+   CONTENEDOR PRINCIPAL
+   Centra la card, encima del canvas (z-index: 3)
+   ══════════════════════════════════════════════════════ */
+.page {
+  position: relative;
+  z-index: 3;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   CARD (panel del perfil)
+   Glassmorphism: fondo oscuro semitransparente
+   con blur que desenfoca el video detrás
+   ══════════════════════════════════════════════════════ */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(10,9,8,0.78);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(24px) saturate(0.4);
+  -webkit-backdrop-filter: blur(24px) saturate(0.4);
+  border-radius: 2px;
+  padding: 2.4rem 2rem 2rem;
+  animation: fadeUp 1s cubic-bezier(.16,1,.3,1) both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ══════════════════════════════════════════════════════
+   HEADER (avatar + nombre)
+   ══════════════════════════════════════════════════════ */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+}
+
+.avatar-wrap { position: relative; flex-shrink: 0; }
+
+.avatar {
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border);
+  filter: grayscale(0.3);
+  display: block;
+}
+
+/* Anillo dorado giratorio */
+.avatar-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0.45;
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.name-block { flex: 1; overflow: hidden; }
+
+.username {
+  font-size: 0.82rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 0.15rem;
+}
+
+.display-name {
+  font-family: var(--font-jp);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  background: rgba(201,169,110,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(201,169,110,0.22);
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-top: 0.25rem;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   DIVISOR, BIO, CITA JP
+   ══════════════════════════════════════════════════════ */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 30%, var(--border) 70%, transparent);
+  margin: 1.4rem 0;
+}
+
+.bio {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.7;
+  letter-spacing: 0.03em;
+  margin-bottom: 1.4rem;
+  font-style: italic;
+}
+
+.bio span { color: var(--accent2); font-style: normal; }
+
+.jp-quote {
+  font-family: var(--font-jp);
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.15);
+  text-align: center;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.6rem;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   LINKS / BOTONES DE REDES
+   ══════════════════════════════════════════════════════ */
+.links { display: flex; flex-direction: column; gap: 0.55rem; }
+
+.link-btn {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Línea dorada que sube al hacer hover */
+.link-btn::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.2s;
+  transform-origin: bottom;
+}
+
+.link-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.13);
+  transform: translateX(3px);
+}
+
+.link-btn:hover::before { transform: scaleY(1); }
+
+.link-icon { width: 16px; height: 16px; opacity: 0.55; flex-shrink: 0; }
+.link-label { flex: 1; }
+.link-arrow { font-size: 0.65rem; opacity: 0.25; }
+
+
+/* ══════════════════════════════════════════════════════
+   STATS
+   ══════════════════════════════════════════════════════ */
+.stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 1.4rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.stat-num { font-family: var(--font-mono); font-size: 1.1rem; color: var(--text); display: block; }
+.stat-label { font-size: 0.62rem; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; display: block; }
+
+
+/* ══════════════════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════════════════ */
+.footer-text {
+  margin-top: 1.8rem;
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.1);
+  letter-spacing: 0.18em;
+  text-align: center;
+  animation: fadeUp 1.2s 0.3s cubic-bezier(.16,1,.3,1) both;
+}
+
+
+
+/* BOTÓN DE AUDIO (esquina inferior izquierda) */
+#audio-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 100;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #c9a96e;
+  font-size: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: crosshair;
+  transition: background 0.2s, transform 0.2s;
+}
+
+#audio-btn:hover {
+  background: rgba(255,255,255,0.1);
+  transform: scale(1.1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ══════════════════════════════════════════════════════
+   REPRODUCTOR ESTILO SPOTIFY
+   Aparece fijo en la esquina inferior izquierda
+   ══════════════════════════════════════════════════════ */
+.player {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(10,9,8,0.82);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 2px;
+  padding: 0.6rem 0.9rem 0.6rem 0.6rem;
+  animation: fadeUp 1.4s 0.5s cubic-bezier(.16,1,.3,1) both;
+}
+
+/* Portada del álbum */
+.player-cover {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+  /* Gira cuando suena la música */
+  animation: none;
+}
+
+/* Clase que se añade via JS cuando está reproduciendo */
+.player-cover.playing {
+  animation: rotateCover 8s linear infinite;
+  border-radius: 50%;
+}
+
+@keyframes rotateCover {
+  to { transform: rotate(360deg); }
+}
+
+/* Nombre y artista */
+.player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.player-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.player-artist {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+/* Botón play/pause */
+.player-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--accent);
+  font-size: 0.75rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: crosshair;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-btn:hover {
+  background: rgba(255,255,255,0.07);
+  transform: scale(1.1);
+}
